@@ -111,6 +111,21 @@ public class RandomPolygon extends Applet implements MouseListener, MouseMotionL
 
 	public void paint (Graphics g) {
 		this.setBackground(backColor);
+//		List<List<Point>> layers = generatePolygon(g);
+
+		g.setColor(backColor);
+		g.fillRect(0, 0, MAX_WIDTH, MAX_HEIGHT);
+
+		g.setColor(randomColor());
+		g.fillPolygon(getXList(finalPolygon), getYList(finalPolygon), finalPolygon.size());
+//		for (List<Point> hull : layers) {
+//			g.setColor(randomColor());
+//			g.drawPolygon(getXList(hull), getYList(hull), hull.size());
+//		}
+		drawPoint(g);
+	}
+
+	private List<List<Point>> generatePolygon (Graphics g) {
 		List<List<Point>> layers = findConvexHullLayers(S);
 		//loop through all layers
 		if (layers.size() > 1) {
@@ -127,34 +142,24 @@ public class RandomPolygon extends Applet implements MouseListener, MouseMotionL
 			}
 		}
 		finalPolygon = layers.get(0);
-
-		g.setColor(backColor);
-		g.fillRect(0, 0, MAX_WIDTH, MAX_HEIGHT);
-
-		g.setColor(randomColor());
-		g.fillPolygon(getXList(layers.get(0)), getYList(layers.get(0)), layers.get(0).size());
-		for (List<Point> hull : layers) {
-			g.setColor(randomColor());
-			g.drawPolygon(getXList(hull), getYList(hull), hull.size());
-		}
-		drawPoint(g);
+		return layers;
 	}
 
 	private Edge getVisibleEdge (Edge outerEdge, List<Edge> edges, Graphics g) {
-		g.setColor(Color.WHITE);
-		g.drawLine((int) outerEdge.p.x, (int) outerEdge.p.y, (int) outerEdge.q.x, (int) outerEdge.q.y);
+//		g.setColor(Color.WHITE);
+//		g.drawLine((int) outerEdge.p.x, (int) outerEdge.p.y, (int) outerEdge.q.x, (int) outerEdge.q.y);
 		for (Edge innerEdge : edges) {
 			boolean intersects = false;
-			g.setColor(randomColor());
+//			g.setColor(randomColor());
 			for (Edge currentEdge : edges) {
 				if (innerEdge.p.x != currentEdge.p.x && innerEdge.p.y != currentEdge.p.y
 						&& innerEdge.p.x != currentEdge.q.x && innerEdge.q.y != currentEdge.q.y
 						|| innerEdge.q.x != currentEdge.p.x && innerEdge.q.y != currentEdge.p.y
 						&& innerEdge.q.x != currentEdge.q.x && innerEdge.q.y != currentEdge.q.y) {
-					g.drawLine((int) innerEdge.p.x, (int) innerEdge.p.y, (int) outerEdge.p.x, (int) outerEdge.p.y);
-					g.drawLine((int) innerEdge.q.x, (int) innerEdge.q.y, (int) outerEdge.q.x, (int) outerEdge.q.y);
-					g.setColor(Color.RED);
-					g.drawLine((int) currentEdge.p.x, (int) currentEdge.p.y, (int) currentEdge.q.x, (int) currentEdge.q.y);
+//					g.drawLine((int) innerEdge.p.x, (int) innerEdge.p.y, (int) outerEdge.p.x, (int) outerEdge.p.y);
+//					g.drawLine((int) innerEdge.q.x, (int) innerEdge.q.y, (int) outerEdge.q.x, (int) outerEdge.q.y);
+//					g.setColor(Color.RED);
+//					g.drawLine((int) currentEdge.p.x, (int) currentEdge.p.y, (int) currentEdge.q.x, (int) currentEdge.q.y);
 					if (Line2D.linesIntersect(innerEdge.p.x, innerEdge.p.y, outerEdge.q.x, outerEdge.q.y, currentEdge.p.x, currentEdge.p.y, currentEdge.q.x, currentEdge.q.y)
 							|| Line2D.linesIntersect(innerEdge.q.x, innerEdge.q.y, outerEdge.p.x, outerEdge.p.y, currentEdge.p.x, currentEdge.p.y, currentEdge.q.x, currentEdge.q.y)) {
 						intersects = true;
@@ -163,7 +168,7 @@ public class RandomPolygon extends Applet implements MouseListener, MouseMotionL
 				}
 			}
 			if (!intersects) {
-				g.drawLine((int) innerEdge.p.x, (int) innerEdge.p.y, (int) innerEdge.q.x, (int) innerEdge.q.y);
+//				g.drawLine((int) innerEdge.p.x, (int) innerEdge.p.y, (int) innerEdge.q.x, (int) innerEdge.q.y);
 				return innerEdge;
 			}
 		}
@@ -348,6 +353,7 @@ public class RandomPolygon extends Applet implements MouseListener, MouseMotionL
 		public void actionPerformed (ActionEvent event) {
 			numOfVertices = Integer.parseInt(textField.getText());
 			randomize();
+			generatePolygon(null);
 			repaint();
 		}
 	}
@@ -356,6 +362,7 @@ public class RandomPolygon extends Applet implements MouseListener, MouseMotionL
 		public void actionPerformed (ActionEvent event) {
 			String fileName = importTextField.getText();
 			parseFile(fileName);
+			generatePolygon(null);
 			repaint();
 		}
 	}
