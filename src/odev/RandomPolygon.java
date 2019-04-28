@@ -31,12 +31,12 @@ public class RandomPolygon extends Applet implements MouseListener, MouseMotionL
 	// the number of different shapes possible
 	private int numOfVertices = 20;
 
-	// timer
-//	private final int DELAY = 127;
-//	private Timer timer;
 	// coordinates of the polygons displayed
 	private int[] xCoord;
 	private int[] yCoord;
+
+	private int[] finalPolygonXList;
+	private int[] finalPolygonYList;
 
 	private Point playerPoint;
 
@@ -52,6 +52,11 @@ public class RandomPolygon extends Applet implements MouseListener, MouseMotionL
 
 	private List<Point> S;
 	private List<Point> finalPolygon;
+	private List<List<Point>> layers;
+
+	private long nextSecond = System.currentTimeMillis() + 1000;
+	private int framesInLastSecond = 0;
+	private int framesInCurrentSecond = 0;
 
 	public static <T> List<T> rotate (List<T> aL, int shift) {
 		List<T> newValues = new ArrayList<>(aL);
@@ -68,15 +73,14 @@ public class RandomPolygon extends Applet implements MouseListener, MouseMotionL
 		resize(preferredDimension);
 		setPreferredSize(preferredDimension);
 		randomize();
-//		int smallestYIndex = findLowestYPoint(S);
-//		List<Point> setOfPoints = new ArrayList<>();
-//		setOfPoints.addAll(S);
-//		setOfPoints.add(new Point(0, S.get(smallestYIndex).y));
-		finalPolygon = S;
-		playerPoint = new Point(250, 250);
-//		timer = new Timer(DELAY, null);
-//		timer.addActionListener(new MyTimerListener());
+		layers = generatePolygon();
 
+		finalPolygon = S;
+		finalPolygonXList = getXList(finalPolygon);
+		finalPolygonYList = getYList(finalPolygon);
+		playerPoint = new Point(250, 250);
+
+		this.setBackground(backColor);
 		prepareGUI();
 	}
 
@@ -106,64 +110,92 @@ public class RandomPolygon extends Applet implements MouseListener, MouseMotionL
 	}
 
 	public void stop () {
-//		timer.stop();
+
 	}
 
 	public void paint (Graphics g) {
-		this.setBackground(backColor);
-//		List<List<Point>> layers = generatePolygon(g);
 
-		g.setColor(backColor);
-		g.fillRect(0, 0, MAX_WIDTH, MAX_HEIGHT);
-
-		g.setColor(randomColor());
-		g.fillPolygon(getXList(finalPolygon), getYList(finalPolygon), finalPolygon.size());
+		g.setColor(Color.GRAY);
+		g.fillPolygon(finalPolygonXList, finalPolygonYList, finalPolygon.size());
 //		for (List<Point> hull : layers) {
-//			g.setColor(randomColor());
-//			g.drawPolygon(getXList(hull), getYList(hull), hull.size());
+//			g.setColor(Color.MAGENTA);
+////			g.drawPolygon(getXList(hull), getYList(hull), hull.size());
+//			for (Point p : hull) {
+////				g.setColor(Color.WHITE);
+//				g.drawString("(" + (int) p.x + "," + (int) p.y + ")", (int) p.x + 5, (int) p.y + 5);
+//			}
 //		}
 		drawPoint(g);
+
+		long currentTime = System.currentTimeMillis();
+		if (currentTime > nextSecond) {
+			nextSecond += 1000;
+			framesInLastSecond = framesInCurrentSecond;
+			framesInCurrentSecond = 0;
+		}
+		framesInCurrentSecond++;
+		g.drawString(framesInLastSecond + " fps", 20, 20);
+		try {
+			Thread.sleep(1000/60);
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
 	}
 
-	private List<List<Point>> generatePolygon (Graphics g) {
+	private List<List<Point>> generatePolygon () {
 		List<List<Point>> layers = findConvexHullLayers(S);
 		//loop through all layers
 		if (layers.size() > 1) {
-			for (int layerIndex = 1; layerIndex < layers.size(); layerIndex++) {
-				List<Point> layer = layers.get(0);
+			for (int layerIndex = layers.size() - 1; layerIndex > 0; layerIndex--) {
+				List<Point> outerLayer = layers.get(layerIndex - 1);
 				List<Point> innerLayer = layers.get(layerIndex);
-				int randomEdgeIndex = (int) (Math.random() * (layer.size() - 1));
-				Edge outerEdge = new Edge(layer.get(randomEdgeIndex % layer.size()), layer.get((randomEdgeIndex + 1) % layer.size()), randomEdgeIndex % layer.size(), (randomEdgeIndex + 1) % layer.size());
+				int randomEdgeIndex = (int) (Math.random() * (outerLayer.size() - 1));
+				Edge outerEdge = new Edge(outerLayer.get(randomEdgeIndex % outerLayer.size()), outerLayer.get((randomEdgeIndex + 1) % outerLayer.size()), randomEdgeIndex % outerLayer.size(), (randomEdgeIndex + 1) % outerLayer.size());
 				List<Edge> edges = getEdges(innerLayer);
-				Edge nonIntersectingEdge = getVisibleEdge(outerEdge, edges, g);
+				Edge nonIntersectingEdge = getVisibleEdge(outerEdge, edges);
 				if (nonIntersectingEdge != null) {
-					layers.set(0, mergeLayers(layer, innerLayer, outerEdge, nonIntersectingEdge));
+					mergeLayers(outerLayer, innerLayer, outerEdge, nonIntersectingEdge);
 				}
 			}
 		}
 		finalPolygon = layers.get(0);
+		finalPolygonXList = getXList(finalPolygon);
+		finalPolygonYList = getYList(finalPolygon);
 		return layers;
 	}
 
-	private Edge getVisibleEdge (Edge outerEdge, List<Edge> edges, Graphics g) {
-//		g.setColor(Color.WHITE);
-//		g.drawLine((int) outerEdge.p.x, (int) outerEdge.p.y, (int) outerEdge.q.x, (int) outerEdge.q.y);
+	private Edge getVisibleEdge (Edge outerEdge, List<Edge> edges) {
 		for (Edge innerEdge : edges) {
 			boolean intersects = false;
-//			g.setColor(randomColor());
+//			g.setColor(backColor);
+//			g.fillRect(0, 0, MAX_WIDTH, MAX_HEIGHT);
+//			g.setColor(Color.WHITE);
+//			g.drawLine((int) outerEdge.p.x, (int) outerEdge.p.y, (int) outerEdge.q.x, (int) outerEdge.q.y);
+//			g.setColor(Color.CYAN);
+//			g.drawLine((int) innerEdge.p.x, (int) innerEdge.p.y, (int) outerEdge.p.x, (int) outerEdge.p.y);
+//			g.drawLine((int) innerEdge.q.x, (int) innerEdge.q.y, (int) outerEdge.q.x, (int) outerEdge.q.y);
+//			g.setColor(Color.BLUE);
+//			g.drawLine((int) innerEdge.p.x, (int) innerEdge.p.y, (int) innerEdge.q.x, (int) innerEdge.q.y);
 			for (Edge currentEdge : edges) {
-				if (innerEdge.p.x != currentEdge.p.x && innerEdge.p.y != currentEdge.p.y
-						&& innerEdge.p.x != currentEdge.q.x && innerEdge.q.y != currentEdge.q.y
-						|| innerEdge.q.x != currentEdge.p.x && innerEdge.q.y != currentEdge.p.y
-						&& innerEdge.q.x != currentEdge.q.x && innerEdge.q.y != currentEdge.q.y) {
-//					g.drawLine((int) innerEdge.p.x, (int) innerEdge.p.y, (int) outerEdge.p.x, (int) outerEdge.p.y);
-//					g.drawLine((int) innerEdge.q.x, (int) innerEdge.q.y, (int) outerEdge.q.x, (int) outerEdge.q.y);
+				if (edges.size() == 1) {
+					return innerEdge;
+				}
+				if (!(innerEdge.p.compareTo(currentEdge.p) == 0 || innerEdge.p.compareTo(currentEdge.q) == 0
+						|| innerEdge.q.compareTo(currentEdge.p) == 0 || innerEdge.q.compareTo(currentEdge.q) == 0)) {
 //					g.setColor(Color.RED);
 //					g.drawLine((int) currentEdge.p.x, (int) currentEdge.p.y, (int) currentEdge.q.x, (int) currentEdge.q.y);
-					if (Line2D.linesIntersect(innerEdge.p.x, innerEdge.p.y, outerEdge.q.x, outerEdge.q.y, currentEdge.p.x, currentEdge.p.y, currentEdge.q.x, currentEdge.q.y)
-							|| Line2D.linesIntersect(innerEdge.q.x, innerEdge.q.y, outerEdge.p.x, outerEdge.p.y, currentEdge.p.x, currentEdge.p.y, currentEdge.q.x, currentEdge.q.y)) {
-						intersects = true;
-						break;
+					if (checkIfInterlayerLinesIntersect(innerEdge, outerEdge)) {
+						if (Line2D.linesIntersect(innerEdge.p.x, innerEdge.p.y, outerEdge.q.x, outerEdge.q.y, currentEdge.p.x, currentEdge.p.y, currentEdge.q.x, currentEdge.q.y)
+								|| Line2D.linesIntersect(innerEdge.q.x, innerEdge.q.y, outerEdge.p.x, outerEdge.p.y, currentEdge.p.x, currentEdge.p.y, currentEdge.q.x, currentEdge.q.y)) {
+							intersects = true;
+							break;
+						}
+					} else {
+						if (Line2D.linesIntersect(innerEdge.p.x, innerEdge.p.y, outerEdge.p.x, outerEdge.p.y, currentEdge.p.x, currentEdge.p.y, currentEdge.q.x, currentEdge.q.y)
+								|| Line2D.linesIntersect(innerEdge.q.x, innerEdge.q.y, outerEdge.q.x, outerEdge.q.y, currentEdge.p.x, currentEdge.p.y, currentEdge.q.x, currentEdge.q.y)) {
+							intersects = true;
+							break;
+						}
 					}
 				}
 			}
@@ -175,16 +207,15 @@ public class RandomPolygon extends Applet implements MouseListener, MouseMotionL
 		return null;
 	}
 
-	private List<Point> mergeLayers (List<Point> layer, List<Point> layerToBeMerged, Edge outerEdge, Edge innerEdge) {
-		for (int layerIndex = 0; layerIndex < layer.size(); layerIndex++) {
-			if (layer.get(layerIndex).x == outerEdge.p.x && layer.get(layerIndex).y == outerEdge.p.y) {
-				layerToBeMerged = rotate(layerToBeMerged, innerEdge.pIndex + 1);
-				Collections.reverse(layerToBeMerged);
-				layer.addAll(layerIndex + 1, layerToBeMerged);
-				return layer;
-			}
-		}
-		return layer;
+	private boolean checkIfInterlayerLinesIntersect (Edge innerEdge, Edge outerEdge) {
+		return Line2D.linesIntersect(innerEdge.p.x, innerEdge.p.y, outerEdge.p.x, outerEdge.p.y, innerEdge.q.x, innerEdge.q.y, outerEdge.q.x, outerEdge.q.y);
+	}
+
+	private void mergeLayers (List<Point> layer, List<Point> layerToBeMerged, Edge outerEdge, Edge innerEdge) {
+		layerToBeMerged = rotate(layerToBeMerged, -innerEdge.pIndex - 1);
+		Collections.reverse(layerToBeMerged);
+		layer.addAll(outerEdge.pIndex + 1, layerToBeMerged);
+		outerEdge.qIndex += layerToBeMerged.size();
 	}
 
 	private List<Edge> getEdges (List<Point> points) {
@@ -238,7 +269,7 @@ public class RandomPolygon extends Applet implements MouseListener, MouseMotionL
 	}
 
 	private void drawPoint (Graphics g) {
-		g.setColor(new Color(255, 255, 255));
+		g.setColor(Color.WHITE);
 		g.fillOval((int) playerPoint.x - 5, (int) playerPoint.y - 5, 10, 10);
 	}
 
@@ -247,22 +278,10 @@ public class RandomPolygon extends Applet implements MouseListener, MouseMotionL
 		xCoord = new int[numOfVertices];
 		yCoord = new int[numOfVertices];
 		for (int i = 0; i < numOfVertices; i++) {
-			xCoord[i] = generator.nextInt(MAX_WIDTH);
-			yCoord[i] = generator.nextInt(MAX_HEIGHT);
+			xCoord[i] = generator.nextInt(MAX_WIDTH - 50) + 50;
+			yCoord[i] = generator.nextInt(MAX_HEIGHT - 50) + 50;
 			S.add(new Point(xCoord[i], yCoord[i]));
 		}
-	}
-
-	private int findLowestYPoint (List<Point> S) {
-		double smallestY = 10000;
-		int smallestIndex = -1;
-		for (Point p : S) {
-			if (p.y < smallestY) {
-				smallestY = p.y;
-				smallestIndex = S.indexOf(p);
-			}
-		}
-		return smallestIndex;
 	}
 
 	private Color randomColor () {
@@ -343,17 +362,11 @@ public class RandomPolygon extends Applet implements MouseListener, MouseMotionL
 
 	}
 
-	class MyTimerListener implements ActionListener {
-		public void actionPerformed (ActionEvent event) {
-			//repaint();
-		}
-	}
-
 	class ButtonClickListener implements ActionListener {
 		public void actionPerformed (ActionEvent event) {
 			numOfVertices = Integer.parseInt(textField.getText());
 			randomize();
-			generatePolygon(null);
+			layers = generatePolygon();
 			repaint();
 		}
 	}
@@ -362,7 +375,7 @@ public class RandomPolygon extends Applet implements MouseListener, MouseMotionL
 		public void actionPerformed (ActionEvent event) {
 			String fileName = importTextField.getText();
 			parseFile(fileName);
-			generatePolygon(null);
+			layers = generatePolygon();
 			repaint();
 		}
 	}
