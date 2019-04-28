@@ -40,6 +40,8 @@ public class RandomPolygon extends Applet implements MouseListener, MouseMotionL
 
 	private Point playerPoint;
 
+	private Point mouseDragPoint = new Point(0,0);
+
 	// pseudorandom number generator
 	private Random generator = new Random();
 
@@ -117,14 +119,14 @@ public class RandomPolygon extends Applet implements MouseListener, MouseMotionL
 
 		g.setColor(Color.GRAY);
 		g.fillPolygon(finalPolygonXList, finalPolygonYList, finalPolygon.size());
-//		for (List<Point> hull : layers) {
-//			g.setColor(Color.MAGENTA);
-////			g.drawPolygon(getXList(hull), getYList(hull), hull.size());
-//			for (Point p : hull) {
-////				g.setColor(Color.WHITE);
-//				g.drawString("(" + (int) p.x + "," + (int) p.y + ")", (int) p.x + 5, (int) p.y + 5);
-//			}
-//		}
+		for (List<Point> hull : layers) {
+			g.setColor(Color.MAGENTA);
+//			g.drawPolygon(getXList(hull), getYList(hull), hull.size());
+			for (Point p : hull) {
+//				g.setColor(Color.WHITE);
+				g.drawString("(" + (int) p.x + "," + (int) p.y + ")", (int) p.x + 5, (int) p.y + 5);
+			}
+		}
 		drawPoint(g);
 
 		long currentTime = System.currentTimeMillis();
@@ -136,7 +138,7 @@ public class RandomPolygon extends Applet implements MouseListener, MouseMotionL
 		framesInCurrentSecond++;
 		g.drawString(framesInLastSecond + " fps", 20, 20);
 		try {
-			Thread.sleep(1000/60);
+			Thread.sleep(1000/80);
 		} catch (InterruptedException e) {
 			e.printStackTrace();
 		}
@@ -326,7 +328,9 @@ public class RandomPolygon extends Applet implements MouseListener, MouseMotionL
 
 	@Override
 	public void mousePressed (MouseEvent e) {
-		if (playerPoint.contains(finalPolygon, new Point(e.getX(), e.getY()))) {
+		mouseDragPoint.x = e.getX();
+		mouseDragPoint.y = e.getY();
+		if (playerPoint.contains(finalPolygon, mouseDragPoint)) {
 			playerPoint.x = e.getX();
 			playerPoint.y = e.getY();
 			repaint();
@@ -350,7 +354,9 @@ public class RandomPolygon extends Applet implements MouseListener, MouseMotionL
 
 	@Override
 	public void mouseDragged (MouseEvent e) {
-		if (playerPoint.contains(finalPolygon, new Point(e.getX(), e.getY()))) {
+		mouseDragPoint.x = e.getX();
+		mouseDragPoint.y = e.getY();
+		if (playerPoint.contains(finalPolygon, mouseDragPoint)) {
 			playerPoint.x = e.getX();
 			playerPoint.y = e.getY();
 			repaint();
